@@ -1,0 +1,1573 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14072e">
+<title>Planning 15h–00h</title>
+<link rel="icon" href="logo.webp" type="image/webp">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the board is the hero. An hour rail on the left runs from late-afternoon amber to
+   midnight navy (15h to 00h), Monday to Sunday across, one colour per person on taken slots.
+   Under 860px the board shows one day at a time behind day tabs, with swipe. */
+:root {
+  color-scheme: dark;
+  --bg: #14072e;
+  --surface: #22104d;
+  --surface-2: #301a6b;
+  --line: #43288a;
+  --fg: #f3ecff;
+  --muted: #b9a6e6;
+  --accent: #a78bfa;
+  --accent-ink: #14072e;
+  --today: #2c1766;
+  --now: #fb923c;
+  --scrim: rgba(10, 3, 28, 0.7);
+  --ra: #8b5cf6; --rb: #5b2da0; --rc: #0c0420;
+  --rt-lt: #f6ecff; --rt-dk: #efe6ff;
+  --tbs: 42%; --tbl: 24%; --tts: 75%; --ttl: 92%; --bar: 64%;
+  --mbl: 62%; --mt: #14072e;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+button, input { font-family: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+.glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(900px 520px at 12% -8%, rgba(124, 58, 237, 0.55), transparent 62%), radial-gradient(760px 560px at 105% 8%, rgba(168, 85, 247, 0.4), transparent 60%), radial-gradient(900px 600px at 50% 115%, rgba(91, 33, 182, 0.55), transparent 65%); }
+.bglogo { position: fixed; z-index: 0; left: 50%; top: 50%; width: min(78vmin, 680px); height: auto; max-width: none; margin: 0; pointer-events: none; user-select: none; opacity: 0.16; filter: drop-shadow(0 0 40px rgba(168, 85, 247, 0.55)); transform: translate(-50%, -50%); }
+@media (prefers-reduced-motion: no-preference) {
+  .bglogo { animation: logofloat 9s ease-in-out infinite; }
+}
+@keyframes logofloat {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.13; }
+  50% { transform: translate(-50%, -53%) scale(1.035); opacity: 0.2; }
+}
+#fx { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; pointer-events: none; }
+.wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-block: 18px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* top bar */
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
+.brand { display: flex; align-items: center; gap: 10px; font: 800 18px var(--font-display); letter-spacing: -0.01em; }
+.logo { display: block; width: 22px; height: 22px; border-radius: 6px; background: linear-gradient(180deg, var(--ra), var(--rb) 55%, var(--rc)); }
+.right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.chip { display: flex; align-items: center; gap: 10px; font-weight: 500; min-width: 0; }
+.dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: hsl(var(--h, 235) 62% var(--mbl)); }
+.chip .who { overflow-wrap: anywhere; }
+.pill { padding: 6px 12px; border: 0; border-radius: 99px; background: var(--now); color: #14072e; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+/* type */
+.kicker { margin: 0 0 8px; font: 500 12px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 0; font: 800 clamp(30px, 6vw, 52px) / 1.02 var(--font-display); letter-spacing: -0.03em; text-wrap: balance; overflow-wrap: anywhere; }
+h2 { margin: 0; font: 700 20px / 1.2 var(--font-display); letter-spacing: -0.01em; }
+h3 { margin: 18px 0 8px; font: 600 14px var(--font-body); color: var(--muted); }
+.lead { margin: 16px 0 0; max-width: 44ch; font-size: 18px; color: var(--muted); }
+.hint { margin: 10px 0 0; max-width: 62ch; color: var(--muted); }
+.fine { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.empty { margin: 14px 0 0; color: var(--muted); }
+.err { margin: 10px 0 0; color: var(--now); font-size: 14px; }
+
+/* buttons */
+.ghost, .primary { padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.ghost { border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.ghost.danger { border-color: var(--now); color: var(--now); }
+.primary { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+.primary:disabled, .ghost:disabled { opacity: 0.55; cursor: default; }
+.sm { padding: 6px 11px; font-size: 13px; }
+.link { padding: 0; border: 0; background: none; color: var(--accent); font-size: 13px; text-decoration: underline; cursor: pointer; }
+
+/* cards and forms */
+.card { padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 0; }
+.card label, .sheet label { display: block; margin: 16px 0 6px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.card input[type="text"], .card input[type="password"], .sheet input[type="text"], .sheet textarea { width: 100%; box-sizing: border-box; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font-size: 16px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+
+/* hour rail colours, shared by the board and the preview */
+.rail { background: color-mix(in oklab, color-mix(in oklab, var(--ra), var(--rb) calc(var(--m1) * 1%)), var(--rc) calc(var(--m2) * 1%)); color: var(--rt-lt); }
+.rail.dk { color: var(--rt-dk); }
+
+/* welcome */
+.welcome { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 40px; align-items: center; padding-top: 8px; }
+.mini { display: grid; grid-template-columns: 26px repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 34px; max-width: 420px; }
+.mini i { display: block; height: 22px; border-radius: 4px; background: var(--surface-2); }
+.mini i.rail { background: color-mix(in oklab, color-mix(in oklab, var(--ra), var(--rb) calc(var(--m1) * 1%)), var(--rc) calc(var(--m2) * 1%)); }
+.mini i.p { background: hsl(var(--h) 62% var(--mbl)); }
+
+/* home */
+.homegrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; margin-top: 26px; }
+.next { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 22px; min-height: 220px; padding: 24px 24px 24px 34px; overflow: hidden; }
+.next::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 10px; background: linear-gradient(180deg, var(--ra), var(--rb) 55%, var(--rc)); }
+.next .when-big { margin: 0; font: 800 clamp(26px, 4.4vw, 38px) / 1.05 var(--font-display); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.next .when-sub { margin: 8px 0 0; color: var(--muted); font-size: 16px; overflow-wrap: anywhere; }
+.next .stats { margin: 0; font: 400 13px var(--font-mono); color: var(--muted); }
+.mine-list { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.mine-list li { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 4px 12px; align-items: baseline; }
+.when { font: 500 13px var(--font-mono); }
+.what { color: var(--muted); overflow-wrap: anywhere; }
+
+/* grade */
+.grade { padding: 3px 10px; border-radius: 99px; background: var(--surface-2); color: var(--muted); font: 500 12px var(--font-mono); overflow-wrap: anywhere; }
+.grades { display: grid; gap: 8px; margin-top: 6px; }
+.card .gopt { display: flex; align-items: center; gap: 10px; margin: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font-size: 15px; font-weight: 600; cursor: pointer; }
+.card .gopt input { margin: 0; accent-color: var(--accent); }
+.card .gopt:has(input:checked) { border-color: var(--accent); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--accent); }
+.card .gopt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.slot .more { margin-top: 3px; font: 500 11px var(--font-mono); opacity: 0.85; text-decoration: underline; text-underline-offset: 2px; }
+.slot .gr { font: 500 11px var(--font-mono); opacity: 0.72; }
+
+/* panel admin */
+.gate { max-width: 460px; margin-top: 22px; }
+.gate .hint { margin-top: 12px; }
+.adm-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px 24px; margin: 24px 0 16px; }
+.adm-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.stat { min-width: 120px; padding: 10px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.stat b { display: block; font: 800 26px / 1.1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.adm-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; }
+.chk { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); cursor: pointer; }
+.chk input { margin: 0; accent-color: var(--accent); }
+.danger-zone { margin-top: 28px; border-color: var(--now); }
+.adm-people { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.pcard { padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 0; }
+.phd { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
+.phd .nm { font: 700 17px var(--font-display); overflow-wrap: anywhere; }
+.phd .cnt { margin-left: auto; font: 500 12px var(--font-mono); color: var(--muted); }
+.pcard .all { margin-top: 12px; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.srow .w { font: 500 13px var(--font-mono); }
+.srow .tt { grid-column: 1; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.srow .ds { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+.srow .alink { grid-column: 1; justify-self: start; font-size: 13px; color: var(--accent); }
+.srow button { grid-column: 2; grid-row: 1 / span 2; }
+
+/* admin */
+.admin { grid-column: 1 / -1; }
+.admin.urgent { border-color: var(--now); }
+.people { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.people li { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.people .nm { min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.people .acts { display: flex; gap: 6px; }
+.admin .empty { margin-top: 0; font-size: 14px; }
+
+/* planning header */
+.ptop { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+.wk { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wk .arrow { width: 40px; padding-inline: 0; font-size: 18px; line-height: 1; }
+.phead { margin-bottom: 18px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+.sw { display: inline-block; width: 12px; height: 12px; margin-right: 6px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -1px; background: var(--surface); }
+.sw.mine { background: hsl(265 62% var(--mbl)); border-color: transparent; }
+.sw.other { background: hsl(265 var(--tbs) var(--tbl)); border-color: transparent; }
+.sw.g { background: hsl(var(--h) 62% var(--mbl)); border-color: transparent; }
+
+.people-strip { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+.pchip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border: 1px solid var(--line); border-radius: 99px; background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 500; cursor: pointer; }
+.pchip .n { font: 400 12px var(--font-mono); color: var(--muted); }
+.pchip[aria-pressed="true"] { border-color: hsl(var(--h) 62% var(--mbl)); box-shadow: inset 0 0 0 1px hsl(var(--h) 62% var(--mbl)); }
+
+.tabs { display: none; gap: 4px; margin-bottom: 12px; }
+.tab { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; padding: 6px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 500; cursor: pointer; }
+.tab .n { font-family: var(--font-mono); font-size: 12px; opacity: 0.75; }
+.tab.today .n { color: var(--now); opacity: 1; font-weight: 500; }
+.tab[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tab[aria-pressed="true"] .n { color: inherit; }
+
+/* board */
+.board { display: grid; grid-template-columns: 54px repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; touch-action: pan-y; }
+.board > * { min-width: 0; }
+.corner, .endfill { background: var(--surface-2); }
+.dh { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; padding: 12px 14px; background: var(--surface); }
+.dn { font: 500 12px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.dd { font: 800 24px / 1 var(--font-display); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.dh.today { background: var(--accent); color: var(--accent-ink); }
+.dh.today .dn { color: inherit; opacity: 0.85; }
+
+.hl { padding: 10px 8px 0 0; text-align: right; font: 500 12px var(--font-mono); font-variant-numeric: tabular-nums; }
+.hl.now { box-shadow: inset -3px 0 0 var(--now); font-weight: 500; }
+.hl.end { padding-block: 5px; }
+.endfill { grid-column: 2 / -1; min-height: 24px; }
+
+.c { display: flex; background: var(--surface); }
+.c.today { background: var(--today); }
+.c.now { box-shadow: inset 0 2px 0 var(--now); }
+.c.tk { background: hsl(var(--h) var(--tbs) var(--tbl)); color: hsl(var(--h) var(--tts) var(--ttl)); box-shadow: inset 3px 0 0 hsl(var(--h) 65% var(--bar)); }
+.c.mine { background: hsl(var(--h) 62% var(--mbl)); color: var(--mt); box-shadow: none; }
+.c.past:not(.tk) { opacity: 0.5; }
+.c.dim { opacity: 0.28; }
+
+.slot { position: relative; display: flex; flex-direction: column; gap: 2px; flex: 1; width: 100%; min-height: 66px; margin: 0; padding: 9px 10px; border: 0; background: transparent; color: inherit; font-size: 14px; line-height: 1.3; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.slot:disabled { cursor: default; }
+.slot .t { font-weight: 700; }
+.slot .by { font-size: 12px; font-weight: 500; opacity: 0.82; }
+.slot::after { content: "+"; position: absolute; right: 8px; bottom: 5px; font: 400 16px var(--font-mono); color: var(--muted); opacity: 0; }
+.c.tk .slot::after, .slot:disabled::after { content: none; }
+.slot:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: hover) {
+  .c:not(.tk) .slot:not(:disabled):hover { background: var(--surface-2); }
+  .c:not(.tk) .slot:not(:disabled):hover::after { opacity: 0.85; }
+  .c.tk .slot:hover { box-shadow: inset 0 0 0 2px currentColor; }
+}
+@media (hover: none) {
+  .c:not(.tk) .slot:not(:disabled)::after { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .slot, .c { transition: background 0.12s ease, opacity 0.15s ease; }
+}
+
+.status { margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
+
+/* sheet */
+.scrim { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--scrim); padding-block: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.sheet { width: min(430px, 100%); box-sizing: border-box; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); color: var(--fg); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3); }
+.sheet { max-height: 100%; overflow-y: auto; }
+.sheet textarea { font-family: inherit; line-height: 1.4; resize: vertical; min-height: 92px; }
+.detail { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.d-title { margin: 0; font: 700 18px / 1.25 var(--font-display); overflow-wrap: anywhere; }
+.d-desc { margin: 0; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.doclink { align-self: flex-start; padding: 9px 14px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 600; text-decoration: none; }
+.doclink:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.sheet .when-line { margin: 6px 0 0; font: 500 13px var(--font-mono); color: var(--muted); }
+.sheet .sub { margin: 12px 0 0; overflow-wrap: anywhere; }
+
+@media (max-width: 859px) {
+  .welcome, .homegrid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .board { grid-template-columns: 54px minmax(0, 1fr); }
+  .off { display: none; }
+  .tabs { display: flex; }
+  .mini { margin-top: 24px; }
+  .mine-list li { grid-template-columns: 96px minmax(0, 1fr); }
+}
+
+/* connexion / inscription */
+.authtabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.authtabs button { padding: 9px 8px; border: 0; border-radius: 9px; background: none; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; }
+.authtabs button[aria-pressed="true"] { background: var(--surface-2); color: var(--fg); box-shadow: inset 0 0 0 1px var(--accent); }
+.note { margin: 12px 0 0; padding: 10px 12px; border: 1px solid var(--accent); border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+/* stats staff */
+.sel { padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--fg); font-size: 14px; font-family: inherit; }
+.sel:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.days { margin-top: 12px; }
+.days summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent); }
+.srow .hrs { grid-column: 2; grid-row: 1; justify-self: end; font: 500 12px var(--font-mono); color: var(--muted); }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body>
+<div class="glow" aria-hidden="true"></div>
+<img class="bglogo" alt="" aria-hidden="true" draggable="false" src="logo.webp">
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<div class="wrap">
+  <div class="bar">
+    <span class="brand"><i class="logo"></i>Planning 15h–00h</span>
+    <div class="right">
+      <button class="ghost sm" id="statsBtn" type="button" hidden>Stats staff</button>
+      <button class="ghost sm" id="adminBtn" type="button" hidden>Panel admin</button>
+      <div class="chip" id="chip" hidden>
+        <i class="dot" id="chipDot"></i>
+        <span class="who" id="chipName"></span>
+        <span class="grade" id="chipGrade" hidden></span>
+        <button class="link" id="rename" type="button">Modifier mon profil</button>
+        <button class="link" id="logout" type="button">Déconnexion</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="v-loading">
+    <p class="status" aria-live="polite">Connexion au planning…</p>
+  </section>
+
+  <section id="v-unavailable" hidden>
+    <h1>Planning pas encore configuré</h1>
+    <p class="hint">Ouvre le fichier <b>config.js</b> et colle l’adresse et la clé de ton projet Supabase (voir le README). Si c’est déjà fait, recharge la page.</p>
+  </section>
+
+  <section id="v-welcome" class="welcome" hidden>
+    <div>
+      <p class="kicker">15h → minuit · lundi → dimanche</p>
+      <h1>Qui prend quel créneau ?</h1>
+      <p class="lead">Crée ton compte (e-mail + mot de passe), choisis ton grade, puis prends les créneaux qui t’arrangent. Ton nom et ton grade s’affichent sur chaque case que tu prends, en couleur.</p>
+      <div class="mini" id="mini" aria-hidden="true"></div>
+    </div>
+    <form class="card" id="signup" novalidate>
+      <div class="authtabs" id="authTabs" role="group" aria-label="Connexion ou inscription">
+        <button type="button" id="tabSignup" aria-pressed="true">Créer un compte</button>
+        <button type="button" id="tabLogin" aria-pressed="false">Se connecter</button>
+      </div>
+      <h2 id="signupTitle">Créer mon compte</h2>
+      <div id="emailWrap">
+        <label for="email">Adresse e-mail</label>
+        <input id="email" type="text" inputmode="email" autocomplete="email" maxlength="120" placeholder="toi@exemple.com">
+      </div>
+      <div id="passWrap">
+        <label for="pass">Mot de passe</label>
+        <input id="pass" type="password" maxlength="72" autocomplete="new-password">
+        <p class="fine" id="passHint" style="margin-top:6px">6 caractères minimum.</p>
+      </div>
+      <div id="pseudoWrap">
+        <label for="pseudo">Pseudo</label>
+        <input id="pseudo" type="text" maxlength="20" autocomplete="nickname" placeholder="Ex. Léa">
+      </div>
+      <div id="gradeWrap">
+        <label id="gradeLabel">Grade</label>
+        <div class="grades" role="radiogroup" aria-labelledby="gradeLabel">
+        <label class="gopt"><input type="radio" name="grade" value="Responsable"><span>Responsable</span></label>
+        <label class="gopt"><input type="radio" name="grade" value="Gérant global"><span>Gérant global</span></label>
+        <label class="gopt"><input type="radio" name="grade" value="Game master"><span>Game master</span></label>
+        <label class="gopt"><input type="radio" name="grade" value="Gérant staff"><span>Gérant staff</span></label>
+        </div>
+      </div>
+      <p class="err" id="signupErr" role="alert" hidden></p>
+      <p class="note" id="signupNote" role="status" hidden></p>
+      <div class="row">
+        <button class="primary" id="signupBtn" type="submit">Créer mon compte</button>
+        <button class="ghost" id="signupCancel" type="button" hidden>Annuler</button>
+      </div>
+      <p class="fine">Le pseudo et le grade sont ce que les autres voient sur tes créneaux.</p>
+    </form>
+  </section>
+
+  <section id="v-home" hidden>
+    <p class="kicker" id="homeDate"></p>
+    <h1 id="hello"></h1>
+    <div class="homegrid">
+      <div class="card next">
+        <div>
+          <p class="kicker" id="nextKicker">Ton prochain créneau</p>
+          <p class="when-big" id="nextWhen"></p>
+          <p class="when-sub" id="nextSub"></p>
+        </div>
+        <div>
+          <p class="stats" id="tileStats"></p>
+          <div class="row"><button class="primary" id="goPlanning" type="button">Ouvrir le planning →</button></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Mes créneaux à venir</h2>
+        <ul class="mine-list" id="mine"></ul>
+        <p class="empty" id="mineEmpty" hidden>Tu n’as aucun créneau à venir. Ouvre le planning et touche une case libre.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-admin" hidden>
+    <div class="ptop">
+      <button class="ghost" id="adminBack" type="button">← Accueil</button>
+      <button class="ghost" id="adminLock" type="button" hidden>Verrouiller</button>
+    </div>
+    <p class="kicker">Accès avec code</p>
+    <h1>Panel admin</h1>
+    <p class="hint">Retire les créneaux pris par les membres. Les comptes ne sont pas supprimés, les personnes peuvent reprendre un créneau ensuite.</p>
+
+    <div class="card gate" id="adminLocked">
+      <h2 id="gateTitle">Code d’accès</h2>
+      <p class="hint" id="gateMsg" hidden></p>
+      <form id="gateForm" novalidate hidden>
+        <label for="gateCode">Code</label>
+        <input id="gateCode" type="password" autocomplete="off" maxlength="40">
+        <p class="err" id="gateErr" role="alert" hidden></p>
+        <div class="row"><button class="primary" id="gateBtn" type="submit">Déverrouiller</button></div>
+      </form>
+      </div>
+
+    <div id="adminOpen" hidden>
+      <div class="adm-top">
+        <div class="adm-stats" id="admStats"></div>
+        <div class="adm-tools">
+          <label class="chk"><input type="checkbox" id="admPast"> Inclure les créneaux passés</label>
+          
+        </div>
+      </div>
+      <p class="err" id="admErr" role="alert" hidden></p>
+      <div class="adm-people" id="admPeople"></div>
+      <p class="empty" id="admEmpty" hidden>Personne n’a pris de créneau à venir.</p>
+      <div class="card danger-zone" id="admClear">
+        <h2>Vider le planning</h2>
+        <p class="hint">Retire des créneaux pour tout le monde. Chaque bouton demande une confirmation.</p>
+        <div class="row" id="admClearBtns"></div>
+        <p class="fine" id="admNote" role="status" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-stats" hidden>
+    <div class="ptop">
+      <button class="ghost" id="statsBack" type="button">← Accueil</button>
+    </div>
+    <p class="kicker">Gérant staff</p>
+    <h1>Statistiques des membres</h1>
+    <p class="hint">Pour chaque membre : le nombre de jours pris et le résumé de chaque jour (heures et titres).</p>
+    <div class="adm-top">
+      <div class="adm-stats" id="statsTiles"></div>
+      <div class="adm-tools">
+        <label class="chk" for="statsPeriod">Période
+          <select class="sel" id="statsPeriod">
+            <option value="week">Cette semaine</option>
+            <option value="month" selected>Ce mois-ci</option>
+            <option value="upcoming">À venir</option>
+            <option value="all">Tout</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <p class="err" id="statsErr" role="alert" hidden></p>
+    <div class="adm-people" id="statsPeople"></div>
+    <p class="empty" id="statsEmpty" hidden>Aucun membre pour l’instant.</p>
+  </section>
+
+  <section id="v-planning" hidden>
+    <div class="ptop">
+      <button class="ghost" id="back" type="button">← Accueil</button>
+      <div class="wk">
+        <button class="ghost arrow" id="prevWeek" type="button" aria-label="Semaine précédente">‹</button>
+        <button class="ghost arrow" id="nextWeek" type="button" aria-label="Semaine suivante">›</button>
+        <button class="ghost" id="todayBtn" type="button" hidden>Aujourd’hui</button>
+      </div>
+    </div>
+    <div class="phead">
+      <p class="kicker" id="pweek"></p>
+      <h1 id="prange"></h1>
+      <div class="legend">
+        <span><i class="sw"></i>Libre</span>
+        <span><i class="sw mine"></i>Pris par toi (couleur pleine)</span>
+        <span><i class="sw other"></i>Pris par quelqu’un d’autre (couleur claire)</span>
+      </div>
+      <div class="legend" aria-label="Couleur selon le grade">
+        <span><i class="sw g" style="--h:215"></i>Responsable</span>
+        <span><i class="sw g" style="--h:140"></i>Gérant global</span>
+        <span><i class="sw g" style="--h:48"></i>Game master</span>
+        <span><i class="sw g" style="--h:330"></i>Gérant staff</span>
+      </div>
+      <p class="fine" style="margin-top:10px">Touche une case prise pour lire son titre et son explication, et ouvrir son Google Docs.</p>
+    </div>
+    <div class="people-strip" id="peopleStrip" hidden></div>
+    <div class="tabs" id="tabs" aria-label="Jour affiché"></div>
+    <div class="board" id="board"></div>
+    <p class="status" id="status" aria-live="polite"></p>
+  </section>
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+</div>
+
+<script>
+(function () {
+  var DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  var SHORT = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  var HOURS = [15, 16, 17, 18, 19, 20, 21, 22, 23];
+  var TOTAL = DAYS.length * HOURS.length;
+  var GRADES = ['Responsable', 'Gérant global', 'Game master', 'Gérant staff'];
+  /* colour of a grade: Responsable blue, Gérant global green, Game master yellow */
+  var GRADE_HUE = { 'Responsable': 215, 'Gérant global': 140, 'Game master': 48, 'Gérant staff': 330 };
+  function gHue(grade, id) { var h = GRADE_HUE[normGrade(grade || '')]; return h != null ? h : hue(id || ''); }
+  /* older accounts and slots may still carry the previous spelling */
+  /* only Google Docs / Drive links are accepted, and only as https */
+  function safeDocUrl(raw) {
+    try {
+      var t = String(raw || '').trim();
+      if (!t) return '';
+      if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) t = 'https://' + t;
+      var u = new URL(t);
+      if (u.protocol !== 'https:') return '';
+      if (u.hostname !== 'docs.google.com' && u.hostname !== 'drive.google.com') return '';
+      return u.href;
+    } catch (e) { return ''; }
+  }
+  function normGrade(g) { return g === 'Game master $' ? 'Game master' : g; }
+  var MIN_OFFSET = -12, MAX_OFFSET = 52;
+
+  function $(id) { return document.getElementById(id); }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function isoDate(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function parseIso(s) { var p = String(s).split('-'); return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2])); }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function plural(n, one, many) { return n + ' ' + (n > 1 ? many : one); }
+  function endLabel(h) { return (h + 1) % 24 === 0 ? 'minuit' : (h + 1) + 'h'; }
+  function hue(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0; return h % 360; }
+
+  var fDay = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  var fShort = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+  var fMonth = new Intl.DateTimeFormat('fr-FR', { month: 'long' });
+
+  function railVars(node, p, dark) {
+    node.style.setProperty('--m1', String(Math.min(100, p * 2)));
+    node.style.setProperty('--m2', String(Math.max(0, (p - 50) * 2)));
+    node.classList.add('rail');
+    if (dark) node.classList.add('dk');
+  }
+
+  var board = $('board'), tabs = $('tabs'), statusEl = $('status');
+  var views = ['loading', 'unavailable', 'welcome', 'home', 'planning', 'admin', 'stats'];
+  var currentView = 'loading';
+
+  var slots = {};            // current week: cellKey -> { id, byId, byName, title }
+  var mySlots = [];          // all weeks: { id, date, hour, title }
+  var cells = {};
+  var heads = [];
+  var dates = [];
+  var weekIso = '', weekOffset = 0, sel = 0, focusId = null;
+  var sb = null, myId = null, me = null;
+      var sheetCtx = null, sheetState = null, lastFocus = null;
+
+  function show(name) {
+    currentView = name;
+    views.forEach(function (v) { $('v-' + v).hidden = v !== name; });
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------- Welcome preview (decorative) ---------- */
+  (function () {
+    var mini = $('mini');
+    var taken = { '1-1': 215, '1-2': 215, '3-4': 48, '4-5': 140, '4-6': 140, '2-4': 215, '5-2': 48, '6-6': 140, '5-7': 215, '0-6': 48 };
+    for (var r = 0; r < 9; r++) {
+      var rl = el('i');
+      railVars(rl, r / 9 * 100, r / 9 * 100 >= 60);
+      mini.appendChild(rl);
+      for (var c = 0; c < 7; c++) {
+        var cell = el('i');
+        var k = c + '-' + r;
+        if (taken[k] != null) { cell.className = 'p'; cell.style.setProperty('--h', String(taken[k])); }
+        mini.appendChild(cell);
+      }
+    }
+  })();
+
+  /* ---------- Board ---------- */
+  board.appendChild(el('div', 'corner'));
+  DAYS.forEach(function (name, d) {
+    var h = el('div', 'dh');
+    h.dataset.d = d;
+    h.appendChild(el('span', 'dn', SHORT[d]));
+    h.appendChild(el('span', 'dd', ''));
+    board.appendChild(h);
+    heads.push(h);
+  });
+  HOURS.forEach(function (h, i) {
+    var lab = el('div', 'hl', h + 'h');
+    lab.dataset.h = h;
+    var p = i / HOURS.length * 100;
+    railVars(lab, p, p >= 60);
+    board.appendChild(lab);
+    DAYS.forEach(function (_, d) {
+      var k = 'd' + d + '_h' + h;
+      var cell = el('div', 'c');
+      cell.dataset.d = d;
+      var btn = el('button', 'slot');
+      btn.type = 'button';
+      btn.addEventListener('click', function () { openSheet(k); });
+      cell.appendChild(btn);
+      board.appendChild(cell);
+      cells[k] = { cell: cell, btn: btn, d: d, h: h };
+    });
+  });
+  var endLab = el('div', 'hl end', '00h');
+  railVars(endLab, 100, true);
+  board.appendChild(endLab);
+  board.appendChild(el('div', 'endfill'));
+
+  var tabEls = [];
+  DAYS.forEach(function (_, d) {
+    var t = el('button', 'tab');
+    t.type = 'button';
+    t.appendChild(el('span', null, SHORT[d]));
+    t.appendChild(el('span', 'n', ''));
+    t.addEventListener('click', function () { sel = d; applySel(); });
+    tabs.appendChild(t);
+    tabEls.push(t);
+  });
+
+  function applySel() {
+    Array.prototype.forEach.call(board.querySelectorAll('[data-d]'), function (e) {
+      e.classList.toggle('off', Number(e.dataset.d) !== sel);
+    });
+    tabEls.forEach(function (t, i) { t.setAttribute('aria-pressed', i === sel ? 'true' : 'false'); });
+  }
+
+  /* swipe between days on a phone */
+  var tx = 0, ty = 0;
+  board.addEventListener('touchstart', function (e) { var t = e.changedTouches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true });
+  board.addEventListener('touchend', function (e) {
+    if (getComputedStyle(tabs).display === 'none') return;
+    var t = e.changedTouches[0];
+    var dx = t.clientX - tx, dy = t.clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      sel = Math.max(0, Math.min(6, sel + (dx < 0 ? 1 : -1)));
+      applySel();
+    }
+  }, { passive: true });
+
+  function slotDate(c) { return dates[c.d]; }
+  function isPast(c) {
+    var dd = slotDate(c);
+    return new Date(dd.getFullYear(), dd.getMonth(), dd.getDate(), c.h + 1) <= new Date();
+  }
+  function cellLabel(c) { return cap(fDay.format(slotDate(c))) + ', de ' + c.h + 'h à ' + endLabel(c.h); }
+
+  function markNow() {
+    var t = new Date();
+    var todayIso = isoDate(t);
+    var hr = t.getHours();
+    var inWeek = dates.some(function (d) { return isoDate(d) === todayIso; });
+    heads.forEach(function (h, d) { h.classList.toggle('today', isoDate(dates[d]) === todayIso); });
+    tabEls.forEach(function (tb, d) { tb.classList.toggle('today', isoDate(dates[d]) === todayIso); });
+    Array.prototype.forEach.call(board.querySelectorAll('.hl[data-h]'), function (l) {
+      l.classList.toggle('now', inWeek && Number(l.dataset.h) === hr);
+    });
+    Object.keys(cells).forEach(function (k) {
+      var c = cells[k];
+      var isToday = isoDate(dates[c.d]) === todayIso;
+      var past = isPast(c);
+      c.cell.classList.toggle('today', isToday);
+      c.cell.classList.toggle('now', isToday && c.h === hr);
+      c.cell.classList.toggle('past', past);
+      c.btn.disabled = past && !slots[k];
+    });
+    renderHomeIfVisible();
+  }
+
+  function paint(k) {
+    var c = cells[k];
+    var s = slots[k];
+    var mineSlot = !!(s && me && s.byId === me.id);
+    c.cell.classList.toggle('tk', !!s);
+    c.cell.classList.toggle('mine', mineSlot);
+    c.cell.classList.toggle('dim', !!(s && focusId && s.byId !== focusId));
+    if (s) c.cell.style.setProperty('--h', String(gHue(s.grade, s.byId))); else c.cell.style.removeProperty('--h');
+    c.btn.textContent = '';
+    if (s) {
+      if (s.title) c.btn.appendChild(el('span', 't', s.title));
+      c.btn.appendChild(el('span', 'by', 'Pris par ' + (mineSlot ? 'toi' : s.byName)));
+      if (s.grade) c.btn.appendChild(el('span', 'gr', s.grade));
+      c.btn.appendChild(el('span', 'more', mineSlot ? 'Modifier ›' : 'Voir les infos ›'));
+      c.btn.title = (s.title ? s.title : '') + (s.desc ? '\n' + (s.desc.length > 160 ? s.desc.slice(0, 160) + '…' : s.desc) : '') + (s.link ? '\n(lien Google Docs)' : '');
+      c.btn.setAttribute('aria-label', cellLabel(c) + ' : ' + (s.title ? s.title + ', ' : '') + 'pris par ' + (mineSlot ? 'toi' : s.byName) + (s.grade ? ', ' + s.grade : ''));
+    } else {
+      c.btn.removeAttribute('title');
+      c.btn.setAttribute('aria-label', cellLabel(c) + ' : libre');
+    }
+  }
+
+  function renderPeople() {
+    var strip = $('peopleStrip');
+    var by = {};
+    Object.keys(slots).forEach(function (k) {
+      var s = slots[k];
+      if (!by[s.byId]) by[s.byId] = { id: s.byId, name: s.byName, grade: s.grade, n: 0 };
+      by[s.byId].n++;
+    });
+    var list = Object.keys(by).map(function (id) { return by[id]; });
+    list.sort(function (a, b) {
+      if (me && a.id === me.id) return -1;
+      if (me && b.id === me.id) return 1;
+      return a.name.localeCompare(b.name, 'fr');
+    });
+    if (focusId && !by[focusId]) focusId = null;
+    strip.textContent = '';
+    list.forEach(function (p) {
+      var b = el('button', 'pchip');
+      b.type = 'button';
+      b.style.setProperty('--h', String(gHue(p.grade, p.id)));
+      b.setAttribute('aria-pressed', focusId === p.id ? 'true' : 'false');
+      var dot = el('i', 'dot');
+      dot.style.setProperty('--h', String(gHue(p.grade, p.id)));
+      b.appendChild(dot);
+      b.appendChild(el('span', null, me && p.id === me.id ? p.name + ' (toi)' : p.name));
+      b.appendChild(el('span', 'n', String(p.n)));
+      b.addEventListener('click', function () { focusId = focusId === p.id ? null : p.id; paintAll(); });
+      strip.appendChild(b);
+    });
+    strip.hidden = list.length === 0;
+  }
+
+  function updateStatus() {
+    var n = Object.keys(slots).length;
+    statusEl.textContent = n === 0
+      ? 'Aucun créneau pris cette semaine. Touche une case libre pour commencer.'
+      : plural(n, 'créneau pris', 'créneaux pris') + ' sur ' + TOTAL + ' · mis à jour en direct';
+  }
+
+  function paintAll() {
+    Object.keys(cells).forEach(paint);
+    renderPeople();
+    updateStatus();
+    markNow();
+  }
+
+  /* ---------- Weeks ---------- */
+  function mondayOf(off) {
+    var d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7) + off * 7);
+  }
+  function isoWeekNumber(monday) {
+    var thu = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3);
+    var jan1 = new Date(thu.getFullYear(), 0, 1);
+    return Math.ceil((Math.round((thu - jan1) / 86400000) + 1) / 7);
+  }
+
+  var weekReq = 0;
+  async function loadWeek() {
+    if (!sb || !me) return;
+    var req = ++weekReq, wk = weekIso;
+    var r = await sb.from('slots').select('*').eq('week', wk);
+    if (req !== weekReq) return;
+    if (r.error) { statusEl.textContent = 'Impossible de charger le planning. Recharge la page.'; return; }
+    applyRows(r.data || []);
+  }
+  function subscribeWeek() { loadWeek(); }
+
+  async function loadMine() {
+    if (!sb || !me) return;
+    var r = await sb.from('slots').select('id,date,hour,title').eq('user_id', myId);
+    if (r.error) return;
+    mySlots = (r.data || []).filter(function (x) { return typeof x.date === 'string' && typeof x.hour === 'number'; })
+      .map(function (x) { return { id: x.id, date: x.date, hour: x.hour, title: x.title || '' }; });
+    renderHomeIfVisible();
+  }
+
+  var rtTimer = null;
+  function refreshAll() {
+    clearTimeout(rtTimer);
+    rtTimer = setTimeout(function () {
+      loadWeek(); loadMine();
+      if (adminUnlocked) loadAdminSlots();
+      if (currentView === 'stats') loadStats();
+    }, 120);
+  }
+
+  function setWeek(off) {
+    weekOffset = Math.max(MIN_OFFSET, Math.min(MAX_OFFSET, off));
+    var mon = mondayOf(weekOffset);
+    dates = DAYS.map(function (_, i) { return new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i); });
+    weekIso = isoDate(dates[0]);
+    heads.forEach(function (h, d) { h.lastChild.textContent = String(dates[d].getDate()); });
+    tabEls.forEach(function (t, d) { t.lastChild.textContent = String(dates[d].getDate()); });
+    var sameMonth = dates[0].getMonth() === dates[6].getMonth();
+    $('prange').textContent = sameMonth
+      ? dates[0].getDate() + ' – ' + dates[6].getDate() + ' ' + fMonth.format(dates[6])
+      : fShort.format(dates[0]) + ' – ' + fShort.format(dates[6]);
+    $('pweek').textContent = 'Semaine ' + isoWeekNumber(dates[0]) + ' · ' + dates[6].getFullYear() +
+      (weekOffset === 0 ? ' · cette semaine' : '');
+    $('todayBtn').hidden = weekOffset === 0;
+    $('prevWeek').disabled = weekOffset <= MIN_OFFSET;
+    $('nextWeek').disabled = weekOffset >= MAX_OFFSET;
+    sel = weekOffset === 0 ? (new Date().getDay() + 6) % 7 : 0;
+    if (!scrim.hidden) closeSheet(false);
+    slots = {};
+    focusId = null;
+    applySel();
+    paintAll();
+    subscribeWeek();
+  }
+
+  $('prevWeek').addEventListener('click', function () { setWeek(weekOffset - 1); });
+  $('nextWeek').addEventListener('click', function () { setWeek(weekOffset + 1); });
+  $('todayBtn').addEventListener('click', function () { setWeek(0); });
+
+  /* ---------- Home ---------- */
+  function slotEnd(s) { var d = parseIso(s.date); return new Date(d.getFullYear(), d.getMonth(), d.getDate(), s.hour + 1); }
+  function upcoming() {
+    var n = new Date();
+    return mySlots.filter(function (s) { return slotEnd(s) > n; })
+      .sort(function (a, b) { return slotEnd(a) - slotEnd(b); });
+  }
+  function relDay(s) {
+    var d = parseIso(s.date);
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    var diff = Math.round((d - t) / 86400000);
+    if (diff === 0) return 'Aujourd’hui';
+    if (diff === 1) return 'Demain';
+    return cap(fDay.format(d));
+  }
+
+  function renderHome() {
+    if (!me) return;
+    $('homeDate').textContent = cap(fDay.format(new Date()));
+    $('hello').textContent = 'Salut ' + me.name;
+    var up = upcoming();
+    if (up.length) {
+      var n = up[0];
+      $('nextKicker').textContent = 'Ton prochain créneau';
+      $('nextWhen').textContent = relDay(n);
+      $('nextSub').textContent = n.hour + 'h – ' + endLabel(n.hour) + (n.title ? ' · ' + n.title : '');
+    } else {
+      $('nextKicker').textContent = 'Ton planning';
+      $('nextWhen').textContent = 'Rien de prévu';
+      $('nextSub').textContent = 'Prends un créneau pour qu’il apparaisse ici.';
+    }
+    $('tileStats').textContent = up.length
+      ? plural(up.length, 'créneau à venir', 'créneaux à venir')
+      : 'Aucun créneau à venir';
+    var ul = $('mine');
+    ul.textContent = '';
+    up.slice(0, 8).forEach(function (s) {
+      var li = el('li');
+      var d = parseIso(s.date);
+      li.appendChild(el('span', 'when', SHORT[(d.getDay() + 6) % 7] + ' ' + d.getDate() + ' · ' + s.hour + 'h'));
+      li.appendChild(el('span', 'what', s.title || 'Sans titre'));
+      ul.appendChild(li);
+    });
+    if (up.length > 8) ul.appendChild(el('li', 'what', '+ ' + (up.length - 8) + ' autres'));
+    $('mineEmpty').hidden = up.length > 0;
+  }
+  function renderHomeIfVisible() { if (currentView === 'home') renderHome(); }
+
+  function updateChip() {
+    $('chip').hidden = !me;
+    if (me) {
+      $('chipName').textContent = me.name;
+      $('chipGrade').textContent = me.grade || '';
+      $('chipGrade').hidden = !me.grade;
+    }
+    $('adminBtn').hidden = !(me && GRADES.indexOf(me.grade) >= 0);
+    $('statsBtn').hidden = !(me && me.grade === 'Gérant staff');
+    if (me) {
+      $('chipDot').style.setProperty('--h', String(gHue(me.grade, me.id)));
+    }
+  }
+
+  /* ---------- Account (Supabase Auth: e-mail + mot de passe) ---------- */
+  var authMode = 'signup';
+  function seenBefore() { try { return localStorage.getItem('planning_seen') === '1'; } catch (e) { return false; } }
+  function markSeen() { try { localStorage.setItem('planning_seen', '1'); } catch (e) { /* ignore */ } }
+
+  function showAuth(mode, forced) {
+    authMode = mode;
+    var prof = mode === 'profile', login = mode === 'login';
+    $('authTabs').hidden = prof;
+    $('tabLogin').setAttribute('aria-pressed', login ? 'true' : 'false');
+    $('tabSignup').setAttribute('aria-pressed', mode === 'signup' ? 'true' : 'false');
+    $('emailWrap').hidden = prof; $('passWrap').hidden = prof; $('passHint').hidden = login || prof;
+    $('pseudoWrap').hidden = login; $('gradeWrap').hidden = login;
+    $('signupTitle').textContent = prof ? (forced ? (me ? 'Choisis ton grade' : 'Termine ton profil') : 'Modifier mon profil') : (login ? 'Se connecter' : 'Créer mon compte');
+    $('signupBtn').textContent = prof ? 'Enregistrer' : (login ? 'Se connecter' : 'Créer mon compte');
+    $('signupCancel').hidden = !prof || !!forced;
+    $('pass').autocomplete = login ? 'current-password' : 'new-password';
+    $('pass').value = '';
+    $('pseudo').value = prof && me ? me.name : '';
+    Array.prototype.forEach.call(document.querySelectorAll('input[name="grade"]'), function (r) {
+      r.checked = !!(prof && me && me.grade === r.value);
+    });
+    signupError('');
+    $('signupNote').hidden = true;
+    show('welcome');
+    (login || mode === 'signup' ? $('email') : $('pseudo')).focus();
+  }
+  function signupError(msg) { var e = $('signupErr'); e.textContent = msg; e.hidden = !msg; }
+  function writeErrorText(err) {
+    var m = err && err.message ? String(err.message) : '';
+    if (/row-level security|permission/i.test(m)) return 'Action refusée : ce créneau ne t’appartient pas.';
+    return 'L’enregistrement a échoué. Réessaie dans un instant.';
+  }
+  function authErrorText(err) {
+    var m = err && err.message ? String(err.message) : '';
+    if (/invalid login/i.test(m)) return 'E-mail ou mot de passe incorrect.';
+    if (/already registered|already been registered/i.test(m)) return 'Un compte existe déjà avec cet e-mail. Connecte-toi.';
+    if (/password/i.test(m)) return 'Mot de passe refusé : 6 caractères minimum.';
+    if (/rate limit|too many/i.test(m)) return 'Trop de tentatives. Réessaie dans quelques minutes.';
+    if (/email/i.test(m)) return 'Adresse e-mail refusée. Vérifie-la.';
+    if (/database error/i.test(m)) return 'Pseudo ou grade refusé. Vérifie les champs.';
+    return 'Échec de la connexion. Réessaie dans un instant.';
+  }
+
+  async function loadProfile() {
+    me = null;
+    var r = await sb.from('profiles').select('*').eq('id', myId).maybeSingle();
+    if (r.data && r.data.name) me = { id: myId, name: r.data.name, grade: normGrade(r.data.grade || '') };
+  }
+
+  $('tabLogin').addEventListener('click', function () { showAuth('login'); });
+  $('tabSignup').addEventListener('click', function () { showAuth('signup'); });
+
+  $('signup').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    if (!sb) return;
+    var mode = authMode;
+    var email = $('email').value.trim(), pass = $('pass').value;
+    var v = $('pseudo').value.replace(/\s+/g, ' ').trim();
+    var gEl = document.querySelector('input[name="grade"]:checked');
+    var g = gEl ? gEl.value : '';
+    if (mode !== 'profile') {
+      if (!/^\S+@\S+\.\S+$/.test(email)) { signupError('Entre une adresse e-mail valide.'); return; }
+      if (pass.length < 6) { signupError('Le mot de passe doit faire au moins 6 caractères.'); return; }
+    }
+    if (mode !== 'login') {
+      if (v.length < 2 || v.length > 20) { signupError('Le pseudo doit faire entre 2 et 20 caractères.'); return; }
+      if (GRADES.indexOf(g) < 0) { signupError('Choisis ton grade.'); return; }
+    }
+    signupError('');
+    $('signupBtn').disabled = true;
+    try {
+      if (mode === 'login') {
+        var r1 = await sb.auth.signInWithPassword({ email: email, password: pass });
+        if (r1.error) { signupError(authErrorText(r1.error)); return; }
+        myId = r1.data.user.id;
+        await loadProfile();
+        markSeen();
+        route();
+      } else if (mode === 'signup') {
+        var r2 = await sb.auth.signUp({ email: email, password: pass, options: { data: { name: v, grade: g } } });
+        if (r2.error) { signupError(authErrorText(r2.error)); return; }
+        if (!r2.data.session) {
+          if (r2.data.user && r2.data.user.identities && r2.data.user.identities.length === 0) { signupError('Un compte existe déjà avec cet e-mail. Connecte-toi.'); return; }
+          $('signupNote').textContent = 'Compte créé. Confirme ton adresse e-mail grâce au message reçu, puis connecte-toi.';
+          $('signupNote').hidden = false;
+          return;
+        }
+        myId = r2.data.user.id;
+        await loadProfile();
+        markSeen();
+        route();
+      } else {
+        var r3 = await sb.from('profiles').upsert({ id: myId, name: v, grade: g });
+        if (r3.error) { signupError(writeErrorText(r3.error)); return; }
+        me = { id: myId, name: v, grade: g };
+        paintAll();
+        refreshAll();
+        route();
+      }
+    } catch (err) {
+      signupError(mode === 'profile' ? writeErrorText(err) : authErrorText(err));
+    } finally {
+      $('signupBtn').disabled = false;
+    }
+  });
+  $('signupCancel').addEventListener('click', function () { route(); });
+  $('rename').addEventListener('click', function () { showAuth('profile'); });
+  $('logout').addEventListener('click', async function () {
+    try { await sb.auth.signOut(); } catch (e) { /* ignore */ }
+    location.reload();
+  });
+
+  /* ---------- Navigation ---------- */
+  $('goPlanning').addEventListener('click', function () { show('planning'); applySel(); markNow(); });
+  $('back').addEventListener('click', function () { renderHome(); show('home'); });
+
+  /* ---------- Slot sheet ---------- */
+  var scrim = $('scrim'), sheet = $('sheet');
+
+  function closeSheet(refocus) {
+    scrim.hidden = true;
+    sheetCtx = null;
+    sheetState = null;
+    if (refocus !== false && lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+  scrim.addEventListener('mousedown', function (e) { if (e.target === scrim) closeSheet(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !scrim.hidden) closeSheet(); });
+
+  function stateOf(k) { var s = slots[k]; return s ? s.byId : 'free'; }
+
+  function openSheet(k, note) {
+    if (!me) return;
+    var c = cells[k];
+    var s = slots[k];
+    if (!s && isPast(c)) return;
+    var mineSlot = !!(s && s.byId === me.id);
+    var free = !s;
+    if (scrim.hidden) lastFocus = c.btn;
+    sheetCtx = { k: k, week: weekIso, date: isoDate(slotDate(c)), id: weekIso + '_' + k };
+    sheetState = stateOf(k);
+    sheet.textContent = '';
+
+    var title = el('h2', null, cap(fDay.format(slotDate(c))));
+    title.id = 'sheetTitle';
+    sheet.appendChild(title);
+    sheet.appendChild(el('p', 'when-line', c.h + 'h – ' + endLabel(c.h)));
+    sheet.appendChild(el('p', 'sub', free ? 'Ce créneau est libre.' : (mineSlot ? 'Tu as pris ce créneau.' : 'Pris par ' + s.byName + (s.grade ? ' (' + s.grade + ')' : '') + '.')));
+
+    if (!free && !mineSlot) {
+      var box = el('div', 'detail');
+      if (s.title) box.appendChild(el('p', 'd-title', s.title));
+      if (s.desc) box.appendChild(el('p', 'd-desc', s.desc));
+      var du = safeDocUrl(s.link);
+      if (du) {
+        var da = el('a', 'doclink', 'Ouvrir le Google Docs ↗');
+        da.href = du; da.target = '_blank'; da.rel = 'noopener noreferrer';
+        box.appendChild(da);
+      }
+      if (!s.title && !s.desc && !du) box.appendChild(el('p', 'd-desc', 'Aucun détail renseigné.'));
+      sheet.appendChild(box);
+    }
+
+    var msg = el('p', 'err');
+    msg.setAttribute('role', 'alert');
+    msg.hidden = !note;
+    if (note) msg.textContent = note;
+
+    var fTitle = null, fDesc = null, fLink = null;
+    if (free || mineSlot) {
+      var l1 = el('label', null, 'Titre');
+      l1.setAttribute('for', 'fTitle');
+      fTitle = el('input');
+      fTitle.type = 'text'; fTitle.id = 'fTitle'; fTitle.maxLength = 60;
+      fTitle.placeholder = 'Ex. Soirée film';
+      fTitle.value = mineSlot ? (s.title || '') : '';
+      var l2 = el('label', null, 'Explication');
+      l2.setAttribute('for', 'fDesc');
+      fDesc = el('textarea');
+      fDesc.id = 'fDesc'; fDesc.rows = 4; fDesc.maxLength = 500;
+      fDesc.placeholder = 'Explique ce que tu prévois sur ce créneau';
+      fDesc.value = mineSlot ? (s.desc || '') : '';
+      var l3 = el('label', null, 'Lien Google Docs (facultatif)');
+      l3.setAttribute('for', 'fLink');
+      fLink = el('input');
+      fLink.type = 'text'; fLink.id = 'fLink'; fLink.maxLength = 300;
+      fLink.setAttribute('inputmode', 'url');
+      fLink.placeholder = 'https://docs.google.com/document/d/… (si tu en as un)';
+      fLink.value = mineSlot ? (s.link || '') : '';
+      [l1, fTitle, l2, fDesc, l3, fLink].forEach(function (n) { sheet.appendChild(n); });
+    }
+    var input = fTitle;
+    sheet.appendChild(msg);
+
+    var row = el('div', 'row');
+    var ctx = sheetCtx;
+    function fail(text) { msg.textContent = text; msg.hidden = false; }
+    function busy(v) { Array.prototype.forEach.call(row.children, function (b) { b.disabled = v; }); }
+
+    if (input) {
+      var go = el('button', 'primary', free ? 'Prendre ce créneau' : 'Enregistrer');
+      go.type = 'button';
+      var submit = async function () {
+        var t = fTitle.value.replace(/\s+/g, ' ').trim();
+        var dsc = fDesc.value.replace(/\r/g, '').trim();
+        var rawLk = fLink.value.trim();
+        var lk = rawLk ? safeDocUrl(rawLk) : '';
+        if (!t) { fail('Ajoute un titre.'); fTitle.focus(); return; }
+        if (!dsc) { fail('Ajoute un texte qui explique.'); fDesc.focus(); return; }
+        if (rawLk && !lk) { fail('Ce lien n’est pas un lien Google Docs valide (docs.google.com ou drive.google.com). Corrige-le ou laisse le champ vide.'); fLink.focus(); return; }
+        var fields = { title: t, desc: dsc, link: lk };
+        busy(true);
+        try {
+          var r = await takeSlot(ctx, c, fields);
+          if (r === true) closeSheet(); else { fail(r); busy(false); }
+        } catch (err) { fail(writeErrorText(err)); busy(false); }
+      };
+      go.addEventListener('click', submit);
+      [fTitle, fLink].forEach(function (f) { f.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit(); } }); });
+      row.appendChild(go);
+      if (mineSlot) {
+        var rel = el('button', 'ghost danger', 'Libérer');
+        rel.type = 'button';
+        rel.addEventListener('click', async function () {
+          busy(true);
+          try {
+            var r = await releaseSlot(ctx);
+            if (r === true) closeSheet(); else { fail(r); busy(false); }
+          } catch (err) { fail(writeErrorText(err)); busy(false); }
+        });
+        row.appendChild(rel);
+      }
+    }
+    var close = el('button', 'ghost', input ? 'Annuler' : 'Fermer');
+    close.type = 'button';
+    close.addEventListener('click', function () { closeSheet(); });
+    row.appendChild(close);
+    sheet.appendChild(row);
+
+    scrim.hidden = false;
+    (input || close).focus();
+  }
+
+  /* Prendre un créneau : la clé unique (semaine + case) empêche deux personnes de prendre le même */
+  async function takeSlot(ctx, c, f) {
+    var mineSlot = !!(slots[ctx.k] && slots[ctx.k].byId === me.id);
+    var row = { title: f.title, descr: f.desc, link: f.link };
+    var r;
+    if (mineSlot) r = await sb.from('slots').update(row).eq('id', ctx.id);
+    else r = await sb.from('slots').insert(Object.assign({ id: ctx.id, week: ctx.week, cell: ctx.k, date: ctx.date, hour: c.h }, row));
+    if (r.error) {
+      if (r.error.code === '23505') { refreshAll(); return 'Ce créneau vient d’être pris par quelqu’un d’autre.'; }
+      throw r.error;
+    }
+    refreshAll();
+    return true;
+  }
+
+  async function releaseSlot(ctx) {
+    var r = await sb.from('slots').delete().eq('id', ctx.id);
+    if (r.error) throw r.error;
+    refreshAll();
+    return true;
+  }
+
+  /* ---------- Routing ---------- */
+  var dataStarted = false;
+  function startData() {
+    if (dataStarted) return;
+    dataStarted = true;
+    loadWeek(); loadMine();
+    try {
+      sb.channel('slots-live').on('postgres_changes', { event: '*', schema: 'public', table: 'slots' }, refreshAll).subscribe();
+    } catch (e) { /* the 30 s refresh below still keeps things current */ }
+    setInterval(refreshAll, 30000);
+  }
+
+  function route() {
+    updateChip();
+    if (!myId) {
+      showAuth(seenBefore() ? 'login' : 'signup');
+    } else if (!me || GRADES.indexOf(me.grade) < 0) {
+      showAuth('profile', true);
+    } else {
+      startData();
+      loadWeek(); loadMine();
+      renderHome();
+      show('home');
+    }
+  }
+
+  /* ---------- Panel admin : le code est vérifié par le serveur ---------- */
+  var adminUnlocked = false, adminSlots = [], adminCode = '', adminHasCode = null, adminLoadFail = false;
+
+  function msgIn(id, text) { var e = $(id); e.textContent = text; e.hidden = !text; }
+
+  function renderGate() {
+    $('adminLocked').hidden = adminUnlocked;
+    $('adminOpen').hidden = !adminUnlocked;
+    $('adminLock').hidden = !adminUnlocked;
+    if (adminUnlocked) return;
+    var note = '';
+    if (adminHasCode === null) note = adminLoadFail ? 'Impossible de lire la configuration. Recharge la page et réessaie.' : 'Chargement…';
+    else if (!adminHasCode) note = 'Le code d’accès n’a pas encore été défini. Il se définit dans Supabase (voir le fichier README).';
+    msgIn('gateMsg', note);
+    $('gateForm').hidden = adminHasCode !== true;
+  }
+
+  function lockAdmin() { adminUnlocked = false; adminCode = ''; adminSlots = []; renderGate(); }
+
+  async function showAdmin() {
+    lockAdmin();
+    adminHasCode = null; adminLoadFail = false;
+    msgIn('gateErr', '');
+    show('admin');
+    renderGate();
+    var r = await sb.rpc('admin_has_code');
+    if (r.error) adminLoadFail = true; else adminHasCode = !!r.data;
+    renderGate();
+    if (!$('gateForm').hidden) $('gateCode').focus();
+  }
+
+  async function loadAdminSlots() {
+    var r = await sb.from('slots').select('*');
+    if (r.error) { msgIn('admErr', 'Impossible de charger les créneaux. Verrouille le panel et rouvre-le.'); return; }
+    adminSlots = (r.data || []).filter(function (x) { return typeof x.user_id === 'string' && typeof x.date === 'string' && typeof x.hour === 'number'; })
+      .map(function (x) { return { id: x.id, byId: x.user_id, byName: String(x.by_name || 'Sans nom'), grade: normGrade(x.grade || ''), title: x.title || '', desc: x.descr || '', link: x.link || '', date: x.date, hour: x.hour }; });
+    renderAdminPanel();
+  }
+
+  $('gateForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var code = $('gateCode').value;
+    if (!code) return;
+    $('gateBtn').disabled = true;
+    try {
+      var r = await sb.rpc('admin_verify', { p_code: code });
+      var st = r.data && r.data.status;
+      if (r.error) { msgIn('gateErr', 'Impossible de vérifier le code. Réessaie dans un instant.'); }
+      else if (st === 'ok') {
+        adminCode = code; adminUnlocked = true;
+        $('gateCode').value = ''; msgIn('gateErr', '');
+        renderGate();
+        loadAdminSlots();
+      } else if (st === 'locked') {
+        msgIn('gateErr', 'Trop d’essais. Réessaie dans ' + (r.data.wait || 60) + ' s.');
+      } else if (st === 'nocode') {
+        adminHasCode = false; renderGate();
+      } else {
+        msgIn('gateErr', 'Code incorrect.');
+        $('gateCode').select();
+      }
+    } catch (err) {
+      msgIn('gateErr', 'Impossible de vérifier le code. Réessaie dans un instant.');
+    } finally {
+      $('gateBtn').disabled = false;
+    }
+  });
+
+  $('adminBtn').addEventListener('click', function () { showAdmin(); });
+  $('adminBack').addEventListener('click', function () { lockAdmin(); renderHome(); show('home'); });
+  $('adminLock').addEventListener('click', function () { lockAdmin(); });
+  $('admPast').addEventListener('change', renderAdminPanel);
+
+  function confirmButton(text, cls, run) {
+    var b = el('button', cls, text);
+    b.type = 'button';
+    var armed = false, timer = null;
+    b.addEventListener('click', async function () {
+      if (!armed) {
+        armed = true;
+        b.textContent = 'Confirmer';
+        timer = setTimeout(function () { armed = false; b.textContent = text; }, 4000);
+        return;
+      }
+      clearTimeout(timer);
+      b.disabled = true;
+      msgIn('admErr', '');
+      try { await run(); } catch (err) { msgIn('admErr', 'Le retrait a échoué. Réessaie dans un instant.'); b.disabled = false; armed = false; b.textContent = text; }
+    });
+    return b;
+  }
+
+  async function removeSlots(ids) {
+    for (var i = 0; i < ids.length; i += 100) {
+      var r = await sb.rpc('admin_delete_slots', { p_code: adminCode, p_ids: ids.slice(i, i + 100) });
+      if (r.error) throw r.error;
+      if (r.data < 0) {
+        lockAdmin();
+        msgIn('gateErr', 'Code refusé ou trop d’essais. Saisis-le à nouveau.');
+        throw new Error('admin refused');
+      }
+    }
+    refreshAll();
+  }
+
+  function renderClearButtons() {
+    var box = $('admClearBtns');
+    box.textContent = '';
+    var now = new Date();
+    var mon = mondayOf(0), sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+    var m0 = isoDate(mon), m1 = isoDate(sun);
+    var groups = [
+      ['Vider cette semaine', adminSlots.filter(function (s) { return s.date >= m0 && s.date <= m1; })],
+      ['Vider les créneaux passés', adminSlots.filter(function (s) { return slotEnd(s) <= now; })],
+      ['Vider tout le planning', adminSlots.slice()]
+    ];
+    groups.forEach(function (g) {
+      var ids = g[1].map(function (s) { return s.id; });
+      var label = g[0] + ' (' + ids.length + ')';
+      var b;
+      if (!ids.length) {
+        b = el('button', 'ghost', label);
+        b.type = 'button';
+        b.disabled = true;
+      } else {
+        b = confirmButton(label, 'ghost danger', async function () {
+          await removeSlots(ids);
+          msgIn('admNote', plural(ids.length, 'créneau retiré', 'créneaux retirés') + '.');
+        });
+      }
+      box.appendChild(b);
+    });
+  }
+
+  function renderAdminPanel() {
+    if (!adminUnlocked) return;
+    var showPast = $('admPast').checked;
+    var now = new Date();
+    var list = adminSlots.filter(function (s) { return showPast || slotEnd(s) > now; });
+    var by = {};
+    list.forEach(function (s) {
+      if (!by[s.byId]) by[s.byId] = { id: s.byId, name: s.byName, grade: s.grade, slots: [] };
+      by[s.byId].slots.push(s);
+    });
+    var people = Object.keys(by).map(function (k) { return by[k]; });
+    people.sort(function (a, b) { return a.name.localeCompare(b.name, 'fr'); });
+
+    var stats = $('admStats');
+    stats.textContent = '';
+    [[people.length, 'personnes'], [list.length, 'créneaux']].forEach(function (x) {
+      var st = el('div', 'stat');
+      st.appendChild(el('b', null, String(x[0])));
+      st.appendChild(el('span', null, x[1]));
+      stats.appendChild(st);
+    });
+
+    var box = $('admPeople');
+    box.textContent = '';
+    people.forEach(function (p) {
+      p.slots.sort(function (a, b) { return slotEnd(a) - slotEnd(b); });
+      var card = el('div', 'pcard');
+      var hd = el('div', 'phd');
+      var dot = el('i', 'dot');
+      dot.style.setProperty('--h', String(gHue(p.grade, p.id)));
+      hd.appendChild(dot);
+      hd.appendChild(el('span', 'nm', p.name));
+      if (p.grade) hd.appendChild(el('span', 'grade', p.grade));
+      hd.appendChild(el('span', 'cnt', plural(p.slots.length, 'créneau', 'créneaux')));
+      card.appendChild(hd);
+      var ids = p.slots.map(function (s) { return s.id; });
+      var all = confirmButton('Retirer tous ses créneaux', 'ghost danger sm all', function () { return removeSlots(ids); });
+      card.appendChild(all);
+      p.slots.forEach(function (s) {
+        var d = parseIso(s.date);
+        var row = el('div', 'srow');
+        row.appendChild(el('span', 'w', SHORT[(d.getDay() + 6) % 7] + ' ' + fShort.format(d) + ' · ' + s.hour + 'h–' + endLabel(s.hour)));
+        if (s.title) row.appendChild(el('span', 'tt', s.title));
+        if (s.desc) row.appendChild(el('span', 'tt ds', s.desc));
+        var al = safeDocUrl(s.link);
+        if (al) {
+          var aa = el('a', 'alink', 'Google Docs ↗');
+          aa.href = al; aa.target = '_blank'; aa.rel = 'noopener noreferrer';
+          row.appendChild(aa);
+        }
+        row.appendChild(confirmButton('Retirer', 'ghost sm', function () { return removeSlots([s.id]); }));
+        card.appendChild(row);
+      });
+      box.appendChild(card);
+    });
+    $('admEmpty').textContent = showPast ? 'Personne n’a pris de créneau.' : 'Personne n’a pris de créneau à venir.';
+    $('admEmpty').hidden = people.length > 0;
+    renderClearButtons();
+  }
+
+  /* ---------- Stats (grade « Gérant staff ») ---------- */
+  var statsData = null;
+  async function loadStats() {
+    if (!sb) return;
+    var a = await sb.from('profiles').select('id,name,grade');
+    var b = await sb.from('slots').select('user_id,date,hour,title');
+    if (a.error || b.error) { msgIn('statsErr', 'Impossible de charger les statistiques. Réessaie dans un instant.'); return; }
+    msgIn('statsErr', '');
+    statsData = { people: a.data || [], slots: (b.data || []).filter(function (x) { return typeof x.date === 'string' && typeof x.hour === 'number'; }) };
+    renderStats();
+  }
+
+  function periodRange(p) {
+    var t = new Date(); t.setHours(0, 0, 0, 0);
+    if (p === 'week') { var m = mondayOf(0); return [isoDate(m), isoDate(new Date(m.getFullYear(), m.getMonth(), m.getDate() + 6))]; }
+    if (p === 'month') { return [isoDate(new Date(t.getFullYear(), t.getMonth(), 1)), isoDate(new Date(t.getFullYear(), t.getMonth() + 1, 0))]; }
+    if (p === 'upcoming') return [isoDate(t), '9999-12-31'];
+    return ['0000-01-01', '9999-12-31'];
+  }
+
+  /* 20h,21h,22h -> "20h–23h" ; trous -> plusieurs plages */
+  function hourRanges(hours) {
+    var hs = hours.slice().sort(function (a, b) { return a - b; }), out = [], i = 0;
+    while (i < hs.length) {
+      var j = i;
+      while (j + 1 < hs.length && hs[j + 1] === hs[j] + 1) j++;
+      out.push(hs[i] + 'h–' + endLabel(hs[j]));
+      i = j + 1;
+    }
+    return out.join(', ');
+  }
+
+  function renderStats() {
+    if (!statsData) return;
+    var rg = periodRange($('statsPeriod').value);
+    var by = {};
+    statsData.people.forEach(function (p) { by[p.id] = { id: p.id, name: p.name, grade: normGrade(p.grade || ''), days: {} }; });
+    var nSlots = 0;
+    statsData.slots.forEach(function (s) {
+      if (s.date < rg[0] || s.date > rg[1] || !by[s.user_id]) return;
+      var d = by[s.user_id].days;
+      if (!d[s.date]) d[s.date] = { hours: [], titles: [] };
+      d[s.date].hours.push(s.hour);
+      if (s.title && d[s.date].titles.indexOf(s.title) < 0) d[s.date].titles.push(s.title);
+      nSlots++;
+    });
+    var list = Object.keys(by).map(function (k) {
+      var p = by[k];
+      p.dayKeys = Object.keys(p.days).sort();
+      p.hours = p.dayKeys.reduce(function (n, dk) { return n + p.days[dk].hours.length; }, 0);
+      return p;
+    });
+    list.sort(function (a, b) { return b.dayKeys.length - a.dayKeys.length || b.hours - a.hours || a.name.localeCompare(b.name, 'fr'); });
+    var active = list.filter(function (p) { return p.dayKeys.length > 0; });
+    var totalDays = list.reduce(function (n, p) { return n + p.dayKeys.length; }, 0);
+
+    var stats = $('statsTiles');
+    stats.textContent = '';
+    [[list.length, 'membres'], [active.length, 'actifs'], [totalDays, 'jours pris'], [nSlots, 'heures prises']].forEach(function (x) {
+      var st = el('div', 'stat');
+      st.appendChild(el('b', null, String(x[0])));
+      st.appendChild(el('span', null, x[1]));
+      stats.appendChild(st);
+    });
+
+    var box = $('statsPeople');
+    box.textContent = '';
+    list.forEach(function (p) {
+      var card = el('div', 'pcard');
+      var hd = el('div', 'phd');
+      var dot = el('i', 'dot');
+      dot.style.setProperty('--h', String(gHue(p.grade, p.id)));
+      hd.appendChild(dot);
+      hd.appendChild(el('span', 'nm', p.name));
+      if (p.grade) hd.appendChild(el('span', 'grade', p.grade));
+      hd.appendChild(el('span', 'cnt', plural(p.dayKeys.length, 'jour', 'jours') + ' · ' + p.hours + ' h'));
+      card.appendChild(hd);
+      if (!p.dayKeys.length) {
+        card.appendChild(el('p', 'fine', 'Aucun jour pris sur cette période.'));
+      } else {
+        var det = el('details', 'days');
+        det.appendChild(el('summary', null, 'Résumé de chaque jour'));
+        p.dayKeys.forEach(function (dk) {
+          var d = parseIso(dk), info = p.days[dk];
+          var row = el('div', 'srow');
+          row.appendChild(el('span', 'w', SHORT[(d.getDay() + 6) % 7] + ' ' + fShort.format(d) + ' · ' + hourRanges(info.hours)));
+          row.appendChild(el('span', 'hrs', info.hours.length + ' h'));
+          if (info.titles.length) row.appendChild(el('span', 'tt', info.titles.join(' · ')));
+          det.appendChild(row);
+        });
+        card.appendChild(det);
+      }
+      box.appendChild(card);
+    });
+    $('statsEmpty').hidden = list.length > 0;
+  }
+
+  function isStaff() { return !!(me && me.grade === 'Gérant staff'); }
+  $('statsBtn').addEventListener('click', function () { statsData = null; $('statsPeople').textContent = ''; show('stats'); loadStats(); });
+  $('statsBack').addEventListener('click', function () { renderHome(); show('home'); });
+  $('statsPeriod').addEventListener('change', renderStats);
+
+  /* ---------- Données en direct ---------- */
+  function applyRows(rows) {
+    var next = {};
+    rows.forEach(function (d) {
+      if (d && d.user_id && d.week === weekIso && cells[d.cell]) {
+        next[d.cell] = { id: d.id, byId: d.user_id, byName: String(d.by_name || 'Quelqu’un'), grade: normGrade(d.grade || ''), title: d.title || '', desc: d.descr || '', link: d.link || '' };
+      }
+    });
+    slots = next;
+    paintAll();
+    if (!scrim.hidden && sheetCtx && stateOf(sheetCtx.k) !== sheetState) {
+      openSheet(sheetCtx.k, 'Ce créneau vient de changer.');
+    }
+  }
+
+  async function connect() {
+    var cfg = window.PLANNING_CONFIG;
+    if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || /VOTRE|YOUR|COLLE/i.test(cfg.SUPABASE_URL + cfg.SUPABASE_ANON_KEY) || !window.supabase) {
+      show('unavailable');
+      return;
+    }
+    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
+    var s = await sb.auth.getSession();
+    if (s.data && s.data.session) { myId = s.data.session.user.id; await loadProfile(); }
+    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT' && myId) location.reload(); });
+    route();
+  }
+
+  setWeek(0);
+  setInterval(markNow, 60000);
+  connect().catch(function () { show('unavailable'); });
+})();
+</script>
+
+<script>
+/* Violet particles: they drift, sway, link up when close, and flee the pointer.
+   Still frame when the viewer asks for reduced motion. */
+(function () {
+  var cv = document.getElementById('fx');
+  if (!cv || !cv.getContext) return;
+  var ctx = cv.getContext('2d');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var COLORS = ['167,139,250', '192,132,252', '139,92,246', '216,180,254'];
+  var W = 0, H = 0, dpr = 1, ps = [], raf = 0, last = 0;
+  var ptr = { x: -9999, y: -9999, on: false };
+  var LINK = 120, PUSH = 140;
+
+  function make(initial) {
+    var r = 1 + Math.random() * 2.6;
+    var sp = 0.35 + Math.random() * 0.9;
+    return {
+      x: Math.random() * W,
+      y: initial ? Math.random() * H : H + 12,
+      r: r,
+      vx: (Math.random() - 0.5) * 0.5,
+      vy: -sp * (0.6 + r / 4),
+      a: 0.35 + Math.random() * 0.6,
+      ph: Math.random() * 6.28,
+      sw: 0.4 + Math.random() * 0.9,
+      c: COLORS[Math.floor(Math.random() * COLORS.length)]
+    };
+  }
+  function resize() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var n = Math.max(34, Math.min(100, Math.floor(W * H / 14000)));
+    ps = [];
+    for (var i = 0; i < n; i++) ps.push(make(true));
+    draw(0, 0);
+  }
+  function draw(t, dt) {
+    ctx.clearRect(0, 0, W, H);
+    var i, j, p, q;
+    if (!reduce) {
+      for (i = 0; i < ps.length; i++) {
+        p = ps[i];
+        p.x += (p.vx + Math.sin(t / 1100 * p.sw + p.ph) * 0.35) * dt;
+        p.y += p.vy * dt;
+        if (ptr.on) {
+          var dx = p.x - ptr.x, dy = p.y - ptr.y, d2 = dx * dx + dy * dy;
+          if (d2 < PUSH * PUSH && d2 > 1) {
+            var d = Math.sqrt(d2), f = (1 - d / PUSH) * 2.2 * dt;
+            p.x += dx / d * f; p.y += dy / d * f;
+          }
+        }
+        if (p.y < -24 || p.x < -24 || p.x > W + 24) ps[i] = make(false);
+      }
+    }
+    ctx.lineWidth = 1;
+    for (i = 0; i < ps.length; i++) {
+      p = ps[i];
+      for (j = i + 1; j < ps.length; j++) {
+        q = ps[j];
+        var lx = p.x - q.x, ly = p.y - q.y, ld = lx * lx + ly * ly;
+        if (ld < LINK * LINK) {
+          ctx.strokeStyle = 'rgba(167,139,250,' + ((1 - Math.sqrt(ld) / LINK) * 0.28).toFixed(3) + ')';
+          ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+        }
+      }
+    }
+    for (i = 0; i < ps.length; i++) {
+      p = ps[i];
+      var tw = reduce ? 1 : 0.6 + 0.4 * Math.sin(t / 700 + p.ph);
+      var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 5);
+      g.addColorStop(0, 'rgba(' + p.c + ',' + Math.min(1, p.a * tw * 1.3).toFixed(3) + ')');
+      g.addColorStop(0.25, 'rgba(' + p.c + ',' + (p.a * tw * 0.4).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(' + p.c + ',0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 5, 0, 6.2832); ctx.fill();
+    }
+  }
+  function loop(t) {
+    var dt = last ? Math.min(3, (t - last) / 16.67) : 1;
+    last = t;
+    draw(t, dt);
+    raf = requestAnimationFrame(loop);
+  }
+  function start() { if (!reduce && !raf) { last = 0; raf = requestAnimationFrame(loop); } }
+  function stop() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
+  function move(e) { var t = e.touches ? e.touches[0] : e; ptr.x = t.clientX; ptr.y = t.clientY; ptr.on = true; }
+  function leave() { ptr.on = false; }
+  window.addEventListener('mousemove', move, { passive: true });
+  window.addEventListener('touchmove', move, { passive: true });
+  window.addEventListener('touchstart', move, { passive: true });
+  window.addEventListener('mouseleave', leave);
+  window.addEventListener('touchend', leave);
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
+  resize();
+  start();
+})();
+</script>
+</body>
+</html>
