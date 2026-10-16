@@ -1451,16 +1451,40 @@ h3 { margin: 18px 0 8px; font: 600 14px var(--font-body); color: var(--muted); }
   }
 
   async function connect() {
-    var cfg = window.PLANNING_CONFIG;
-    if (!cfg || !cfg.SUPABASE_URL || !cfg.SUPABASE_ANON_KEY || /VOTRE|YOUR|COLLE/i.test(cfg.SUPABASE_URL + cfg.SUPABASE_ANON_KEY || !window.supabase) {
-      show('unavailable');
-      return;
+  var cfg = window.PLANNING_CONFIG;
+
+  if (
+    !cfg ||
+    !cfg.SUPABASE_URL ||
+    !cfg.SUPABASE_ANON_KEY ||
+    /VOTRE|YOUR|COLLE/i.test(
+      cfg.SUPABASE_URL + cfg.SUPABASE_ANON_KEY
+    ) ||
+    !window.supabase
+  ) {
+    show('unavailable');
+    return;
+  }
+
+  sb = window.supabase.createClient(
+    cfg.SUPABASE_URL,
+    cfg.SUPABASE_ANON_KEY
+  );
+
+  var s = await sb.auth.getSession();
+
+  if (s.data && s.data.session) {
+    myId = s.data.session.user.id;
+    await loadProfile();
+  }
+
+  sb.auth.onAuthStateChange(function (ev) {
+    if (ev === 'SIGNED_OUT' && myId) {
+      location.reload();
     }
-    sb = window.supabase.createClient(cfg.SUPABASE_URL, cfg.SUPABASE_ANON_KEY);
-    var s = await sb.auth.getSession();
-    if (s.data && s.data.session) { myId = s.data.session.user.id; await loadProfile(); }
-    sb.auth.onAuthStateChange(function (ev) { if (ev === 'SIGNED_OUT' && myId) location.reload(); });
-    route();
+  });
+
+  route();
   }
 
   setWeek(0);
